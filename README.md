@@ -115,13 +115,13 @@ itsm-helpdesk-lab/
 │   └── P3-new-user-onboarding.md       # P3 ticket — New user onboarding request  ⏳
 │
 ├── workflows/
-│   ├── sla-policy.md                   # P1/P2/P3 SLA definitions                 ⏳
+│   ├── sla-policy.md                   # P1/P2/P3 SLA definitions                 ✅
 │   ├── p1-incident-response.md         # P1 escalation workflow                    ⏳
 │   └── p2-incident-response.md         # P2 incident workflow                      ⏳
 │
 ├── config/
-│   ├── osticket-settings.md            # osTicket configuration reference          ⏳
-│   └── ad-integration.md               # AD/LDAP integration steps                ⏳
+│   ├── osticket-settings.md            # osTicket configuration reference          ✅
+│   └── ad-integration.md               # AD/LDAP integration steps                ✅
 │
 ├── docs/
 │   └── runbook.md                      # Helpdesk operational runbook              ⏳
@@ -553,8 +553,8 @@ Create agents using your existing AD lab users:
 
 | Name      | Email                  | Username  | Department | Role           | Team             |
 | --------- | ---------------------- | --------- | ---------- | -------------- | ---------------- |
-| Paula Doe | paula.doe@infotech.com | paula.doe | IT Support | Senior Agent   | Level II Support |
-| Dave Doe  | dave.doe@infotech.com  | dave.doe  | IT Support | Helpdesk Agent | Level I Support  |
+| Paula Doe | paula@infotech.com | paula | IT Support | Senior Agent   | Level II Support |
+| Dave Doe  | dave@infotech.com  | dave  | IT Support | Helpdesk Agent | Level I Support  |
 | Sue       | sue@infotech.com       | sue       | Security   | Senior Agent   | Level II Support |
 
 **For each agent:**
@@ -575,8 +575,8 @@ These are the end users who submit tickets — also mapped to your AD lab:
 
 | Name          | Email                 |
 | ------------- | --------------------- |
-| Ram Doe       | ram.doe@infotech.com  |
-| John Doe      | john.doe@infotech.com |
+| Ram Doe       | rdoe@infotech.com  |
+| Jessy Merch      | jmerch@infotech.com |
 | Alice Johnson | ajohnson@infotech.com |
 
 ---
