@@ -139,7 +139,7 @@ itsm-helpdesk-lab/
 | --- | --------------------------------------------------- | ------------ |
 | 1   | Install LAMP stack on Ubuntu                        | ✅ Completed |
 | 2   | Install and configure osTicket                      | ✅ Completed |
-| 3   | Configure departments, teams, and SLA plans         | ⏳ Pending   |
+| 3   | Configure departments, teams, and SLA plans         | ✅ Completed |
 | 4   | Integrate osTicket with InfoTech.com AD via LDAP    | ⏳ Pending   |
 | 5   | Create and document real tickets from lab incidents | ⏳ Pending   |
 | 6   | Write SLA policy and escalation workflows           | ⏳ Pending   |
@@ -507,3 +507,127 @@ This is the address users see when they receive ticket notifications.
 </p>
 
 ---
+
+# ✅ Phase 3 — Configure Departments, Teams, SLA Plans & Agents
+
+## 📋 What This Phase Covers
+
+With osTicket installed, this phase builds the operational structure —
+SLA plans, agents, and ticket routing — so the system behaves like a
+real Helpdesk environment. Every setting configured here directly maps
+to the incidents documented in the `tickets/` and `workflows/` folders.
+
+> Full configuration reference: [`config/osticket-settings.md`](config/osticket-settings.md)
+> Full SLA policy: [`workflows/sla-policy.md`](workflows/sla-policy.md)
+
+---
+
+## ⚙️ Part A — Configure SLA Plans
+
+Navigate to: **Admin Panel → Manage → SLA Plans → Add New SLA Plan**
+
+Create all four plans:
+
+| SLA Plan | Grace Period | Schedule       | Used For                      |
+| -------- | ------------ | -------------- | ----------------------------- |
+| `SEV-1`  | 1 hour       | 24/7           | Critical — service down       |
+| `SEV-2`  | 4 hours      | 24/7           | High — significant impact     |
+| `SEV-3`  | 8 hours      | Business hours | Medium — single user affected |
+| `SEV-4`  | 72 hours     | Business hours | Low — general requests        |
+
+**How to create each one:**
+
+- Click **Add New SLA Plan**
+- Set the name (e.g. `SEV-1`)
+- Set Grace Period in hours
+- Set Schedule (`24/7` or `Monday-Friday 8am-5pm`)
+- Enable → Save
+
+---
+
+## ⚙️ Part B — Configure Agents
+
+Navigate to: **Admin Panel → Agents → Add New Agent**
+
+Create agents using your existing AD lab users:
+
+| Name      | Email                  | Username  | Department | Role           | Team             |
+| --------- | ---------------------- | --------- | ---------- | -------------- | ---------------- |
+| Paula Doe | paula.doe@infotech.com | paula.doe | IT Support | Senior Agent   | Level II Support |
+| Dave Doe  | dave.doe@infotech.com  | dave.doe  | IT Support | Helpdesk Agent | Level I Support  |
+| Sue       | sue@infotech.com       | sue       | Security   | Senior Agent   | Level II Support |
+
+**For each agent:**
+
+- Fill in name and email
+- Set username matching their AD account
+- Assign department and role
+- Assign to team
+- Set a temporary password — they will reset on first login
+
+---
+
+## ⚙️ Part C — Configure Users (Ticket Submitters)
+
+Navigate to: **Agent Panel → Users → Add User**
+
+These are the end users who submit tickets — also mapped to your AD lab:
+
+| Name          | Email                 |
+| ------------- | --------------------- |
+| Ram Doe       | ram.doe@infotech.com  |
+| John Doe      | john.doe@infotech.com |
+| Alice Johnson | ajohnson@infotech.com |
+
+---
+
+## ⚙️ Part D — Link Help Topics to Departments and SLA Plans
+
+Navigate to: **Admin Panel → Manage → Help Topics**
+
+Update each help topic with the correct department and SLA:
+
+| Help Topic            | Department     | SLA   | Priority  |
+| --------------------- | -------------- | ----- | --------- |
+| `Account Locked Out`  | IT Support     | SEV-2 | High      |
+| `Security Alert`      | Security       | SEV-1 | Emergency |
+| `Server / AD Issue`   | Infrastructure | SEV-1 | High      |
+| `New User Onboarding` | IT Support     | SEV-3 | Normal    |
+| `Password Reset`      | IT Support     | SEV-3 | Normal    |
+| `General IT Request`  | IT Support     | SEV-4 | Low       |
+
+---
+
+## ⚙️ Part E — Configure Ticket Settings
+
+Navigate to: **Admin Panel → Settings → Tickets**
+
+| Setting              | Value                | Reason                                    |
+| -------------------- | -------------------- | ----------------------------------------- |
+| Default SLA          | `SEV-3`              | Safe default for unclassified tickets     |
+| Default Priority     | `Normal`             | Agents can escalate as needed             |
+| Allow HTML           | `Yes`                | Cleaner ticket formatting                 |
+| Ticket Number Format | `#%YYYY%MM%DD-%####` | Date-based numbering                      |
+| Auto-assign tickets  | `Yes`                | Route to correct department automatically |
+
+---
+
+## ✅ Outcome
+
+- SLA plans SEV-1 through SEV-4 configured with correct grace periods ✅
+- Agents created — Paula, Dave, Sue — matching existing AD lab users ✅
+- End users created — Ram, John, Alice — matching onboarded AD accounts ✅
+- Help topics linked to correct departments and SLA plans ✅
+- Ticket settings configured — auto-assign and HTML enabled ✅
+
+---
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="Screenshots/phase3-img1.png" width="45%" />
+  <img src="Screenshots/phase3-img2.png" width="45%" />
+</p>
+<p align="center">
+  <img src="Screenshots/phase3-img3.png" width="45%" />
+  </p>
