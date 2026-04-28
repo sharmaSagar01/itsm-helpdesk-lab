@@ -135,15 +135,15 @@ itsm-helpdesk-lab/
 
 ## 🧩 Build Progress
 
-| #   | Phase                                               | Status     |
-| --- | --------------------------------------------------- | ---------- |
-| 1   | Install LAMP stack on Ubuntu                        | ⏳ Pending |
-| 2   | Install and configure osTicket                      | ⏳ Pending |
-| 3   | Configure departments, teams, and SLA plans         | ⏳ Pending |
-| 4   | Integrate osTicket with InfoTech.com AD via LDAP    | ⏳ Pending |
-| 5   | Create and document real tickets from lab incidents | ⏳ Pending |
-| 6   | Write SLA policy and escalation workflows           | ⏳ Pending |
-| 7   | Write Helpdesk runbook + push to GitHub             | ⏳ Pending |
+| #   | Phase                                               | Status       |
+| --- | --------------------------------------------------- | ------------ |
+| 1   | Install LAMP stack on Ubuntu                        | ✅ Completed |
+| 2   | Install and configure osTicket                      | ✅ Completed |
+| 3   | Configure departments, teams, and SLA plans         | ⏳ Pending   |
+| 4   | Integrate osTicket with InfoTech.com AD via LDAP    | ⏳ Pending   |
+| 5   | Create and document real tickets from lab incidents | ⏳ Pending   |
+| 6   | Write SLA policy and escalation workflows           | ⏳ Pending   |
+| 7   | Write Helpdesk runbook + push to GitHub             | ⏳ Pending   |
 
 ---
 
@@ -288,7 +288,6 @@ sudo systemctl status mariadb --no-pager
 - PHP 8.x installed with all required extensions ✅
 - `osticket` database and user created in MariaDB ✅
 - Both services enabled for auto-start on boot ✅
-- Ready for **Phase 2 — Installing osTicket** ✅
 
 ---
 
@@ -302,3 +301,209 @@ sudo systemctl status mariadb --no-pager
   <img src="Screenshots/phase1-img3.png" width="45%" />
   </p>
 
+---
+
+# ✅ Phase 2 — Install and Configure osTicket
+
+## 📋 What This Phase Covers
+
+With the LAMP stack running, this phase downloads osTicket, deploys it
+under Apache, runs the web-based installer, and performs the essential
+post-install configuration — departments, roles, teams, and help topics —
+to make it ready for real ticket creation.
+
+---
+
+## 🚀 Installation Steps
+
+### Part A — Download and Deploy osTicket
+
+**Step 1 — Download the latest osTicket release**
+
+```bash
+cd /tmp
+wget https://github.com/osTicket/osTicket/releases/download/v1.18.1/osTicket-v1.18.1.zip
+```
+
+**Step 2 — Extract and move to Apache web root**
+
+```bash
+sudo apt install unzip -y
+unzip osTicket-v1.18.1.zip -d osTicket
+sudo mv osTicket/upload /var/www/html/osticket
+```
+
+**Step 3 — Set correct permissions**
+
+```bash
+sudo chown -R www-data:www-data /var/www/html/osticket
+sudo chmod -R 755 /var/www/html/osticket
+```
+
+**Step 4 — Copy the sample config file**
+
+```bash
+sudo cp /var/www/html/osticket/include/ost-sampleconfig.php \
+        /var/www/html/osticket/include/ost-config.php
+
+sudo chmod 0666 /var/www/html/osticket/include/ost-config.php
+```
+
+**Step 5 — Enable Apache rewrite module and restart**
+
+```bash
+sudo a2enmod rewrite
+sudo systemctl restart apache2
+```
+
+---
+
+### Part B — Run the Web Installer
+
+Open a browser on any machine on the `192.168.1.0/24` network:
+
+```
+http://192.168.1.xx/osticket/setup
+```
+
+Work through the installer screens:
+
+**Screen 1 — Prerequisites check**
+All items should show green ✅. If any PHP extension shows red — install it:
+
+```bash
+sudo apt install php-<extension-name> -y
+sudo systemctl restart apache2
+```
+
+**Screen 2 — Basic Configuration**
+
+| Field         | Value                  |
+| ------------- | ---------------------- |
+| Helpdesk Name | `InfoTech IT Support`  |
+| Default Email | `support@infotech.com` |
+
+**Screen 3 — Admin Account**
+
+| Field      | Value                             |
+| ---------- | --------------------------------- |
+| First Name | `Admin`                           |
+| Last Name  | `User`                            |
+| Email      | `admin@infotech.com`              |
+| Username   | `admin`                           |
+| Password   | Set a strong password and save it |
+
+**Screen 4 — Database Settings**
+
+| Field              | Value             |
+| ------------------ | ----------------- |
+| MySQL Table Prefix | `ost_`            |
+| MySQL Hostname     | `localhost`       |
+| MySQL Database     | `osticket`        |
+| MySQL Username     | `osticket`        |
+| MySQL Password     | `osTicket@12345!` |
+
+Click **Install Now** → wait for the installation to complete.
+
+---
+
+### Part C — Post-Install Cleanup
+
+```bash
+# Remove the setup directory — required for security
+sudo rm -rf /var/www/html/osticket/setup
+
+# Lock down the config file
+sudo chmod 0644 /var/www/html/osticket/include/ost-config.php
+```
+
+---
+
+### Part D — Post-Install Configuration (Admin Panel)
+
+Navigate to the Admin Panel:
+
+```
+http://192.168.1.xx/osticket/scp
+```
+
+Log in with `admin` credentials set during installation.
+
+**Configure Departments:**
+
+Go to **Admin Panel → Agents → Departments → Add New Department**
+
+| Department       | Type    | Purpose                    |
+| ---------------- | ------- | -------------------------- |
+| `IT Support`     | Public  | General helpdesk tickets   |
+| `Infrastructure` | Private | Server and AD issues       |
+| `Security`       | Private | Wazuh alerts and incidents |
+
+**Configure Teams:**
+
+Go to **Admin Panel → Agents → Teams → Add New Team**
+
+| Team               | Purpose                                         |
+| ------------------ | ----------------------------------------------- |
+| `Level I Support`  | First response — password resets, access issues |
+| `Level II Support` | Escalated issues — server, AD, network          |
+
+**Configure Roles:**
+
+Go to **Admin Panel → Agents → Roles → Add New Role**
+
+| Role             | Permissions                          |
+| ---------------- | ------------------------------------ |
+| `Helpdesk Agent` | Create, reply, close tickets         |
+| `Senior Agent`   | All above + assign, transfer, delete |
+| `Administrator`  | Full access                          |
+
+**Configure Help Topics:**
+
+Go to **Admin Panel → Manage → Help Topics → Add New Help Topic**
+
+| Help Topic            | Department     | Priority  |
+| --------------------- | -------------- | --------- |
+| `Account Locked Out`  | IT Support     | High      |
+| `New User Onboarding` | IT Support     | Normal    |
+| `Security Alert`      | Security       | Emergency |
+| `Server / AD Issue`   | Infrastructure | High      |
+| `Password Reset`      | IT Support     | Normal    |
+| `General IT Request`  | IT Support     | Low       |
+
+---
+
+### Part E — Configure Email Settings
+
+Go to **Admin Panel → Emails → Emails → Add New Email**
+
+| Field         | Value                  |
+| ------------- | ---------------------- |
+| Email Address | `support@infotech.com` |
+| Name          | `InfoTech IT Support`  |
+| Department    | `IT Support`           |
+
+This is the address users see when they receive ticket notifications.
+
+---
+
+## ✅ Outcome
+
+- osTicket downloaded and deployed to `/var/www/html/osticket` ✅
+- Web installer completed successfully ✅
+- Setup directory removed — installation secured ✅
+- Admin panel accessible at `http://192.168.1.xx/osticket/scp` ✅
+- Departments created: IT Support, Infrastructure, Security ✅
+- Teams created: Level I and Level II Support ✅
+- Help topics configured for all common ticket types ✅
+
+---
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="Screenshots/phase2-img1.png" width="45%" />
+  <img src="Screenshots/phase2-img2.png" width="45%" />
+</p>
+
+---
