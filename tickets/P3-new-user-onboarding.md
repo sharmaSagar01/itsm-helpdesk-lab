@@ -1,18 +1,18 @@
 # 🟡 Ticket — P3 — New User Onboarding
 
-| Field | Details |
-|-------|---------|
-| **Ticket ID** | `#2026041404` |
-| **Priority** | P3 — Normal |
-| **SLA** | SEV-3 (8 hours grace / Business hours) |
-| **Help Topic** | New User Onboarding |
-| **Department** | IT Support |
-| **Assigned To** | Dave Doe |
-| **Opened By** | Ram Doe (HR) |
-| **Date Opened** | 2026-04-14 08:30 |
-| **Date Resolved** | 2026-04-14 11:00 |
-| **Status** | Resolved |
-| **Source Lab** | AD Automation Toolkit — Script 1 (New-UserOnboard.ps1) |
+| Field             | Details                                                |
+| ----------------- | ------------------------------------------------------ |
+| **Ticket ID**     | `#2026041404`                                          |
+| **Priority**      | P3 — Normal                                            |
+| **SLA**           | SEV-3 (8 hours grace / Business hours)                 |
+| **Help Topic**    | New User Onboarding                                    |
+| **Department**    | IT Support                                             |
+| **Assigned To**   | Dave Doe                                               |
+| **Opened By**     | Ram Doe (HR)                                           |
+| **Date Opened**   | 2026-04-14 08:30                                       |
+| **Date Resolved** | 2026-04-14 11:00                                       |
+| **Status**        | Resolved                                               |
+| **Source Lab**    | AD Automation Toolkit — Script 1 (New-UserOnboard.ps1) |
 
 ---
 
@@ -53,6 +53,7 @@ Requirements:
 ```
 
 Script output confirmed:
+
 ```
 [SUCCESS] User created in OU: OU=All_Staff,DC=InfoTech,DC=com
 [OK]   Added to group: IT_Support
@@ -75,6 +76,7 @@ Get-ADUser -Identity "jsmith" -Properties Department, Title, MemberOf |
 **Step 3 — Verify shared folder access**
 
 Logged into domain-joined client as `jsmith` — confirmed:
+
 - `\\VM-DEV-WINSERV-01\IT_Docs` → ✅ Accessible (IT_Support group)
 - Personal drive mapped → ✅ `\\VM-DEV-WINSERV-01\Personal\jsmith`
 
@@ -96,7 +98,7 @@ Your IT account is ready:
   Temp password: apple@123 (you will be prompted to change this on first login)
 
 Your network drives are mapped automatically when you log in.
-For IT support, submit a ticket at: http://192.168.1.19/osticket
+For IT support, submit a ticket at: http://192.168.1.xx/osticket
 
 — IT Support Team
 ```
@@ -105,17 +107,17 @@ For IT support, submit a ticket at: http://192.168.1.19/osticket
 
 ## ✅ Resolution
 
-| Requirement | Result |
-|-------------|--------|
-| AD account created (`jsmith`) | ✅ |
-| Placed in `All_Staff` OU | ✅ |
-| Added to `IT_Support` security group | ✅ |
-| Added to `All_Staff` distribution group | ✅ |
-| Temporary password set — reset on login | ✅ |
-| IT_Docs shared folder access confirmed | ✅ |
-| Personal network drive mapped | ✅ |
-| GPOs applied (Control Panel, Folder Redirect) | ✅ |
-| Welcome message sent | ✅ |
+| Requirement                                   | Result |
+| --------------------------------------------- | ------ |
+| AD account created (`jsmith`)                 | ✅     |
+| Placed in `All_Staff` OU                      | ✅     |
+| Added to `IT_Support` security group          | ✅     |
+| Added to `All_Staff` distribution group       | ✅     |
+| Temporary password set — reset on login       | ✅     |
+| IT_Docs shared folder access confirmed        | ✅     |
+| Personal network drive mapped                 | ✅     |
+| GPOs applied (Control Panel, Folder Redirect) | ✅     |
+| Welcome message sent                          | ✅     |
 
 **Resolution time:** 2 hours 30 minutes (within SEV-3 24-hour SLA)
 

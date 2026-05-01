@@ -1,15 +1,25 @@
 # 🔗 Authentication — LDAP Attempt & Local Auth Decision
 
-> Documents the LDAP integration that was attempted in Phase 4,
-> the technical issue encountered, and the decision to use local authentication.
+> Documents the LDAP integration attempted in Phase 4, the technical
+> issue encountered, and the decision to use local authentication instead.
 
 ---
 
 ## 🎯 What Was Attempted
 
-LDAP authentication was attempted to allow osTicket agents to log in
-using their existing `InfoTech.com` Active Directory credentials —
-eliminating the need for a separate osTicket password.
+LDAP authentication was attempted to allow osTicket agents to log in with
+their existing `InfoTech.com` Active Directory credentials — eliminating
+the need for a separate osTicket password.
+
+**Target configuration:**
+
+| Field | Value |
+|-------|-------|
+| LDAP Server | `192.168.1.10` (VM-WINSERV-01) |
+| Port | `389` |
+| Base DN | `DC=InfoTech,DC=com` |
+| Bind DN | `CN=Administrator,CN=Users,DC=InfoTech,DC=com` |
+| Search Filter | `(sAMAccountName=%s)` |
 
 ---
 
@@ -19,14 +29,14 @@ eliminating the need for a separate osTicket password.
 ```bash
 sudo apt install php-ldap -y
 sudo systemctl restart apache2
-php -m | grep ldap   # confirmed: ldap loaded
+php -m | grep ldap   # ✅ confirmed: ldap loaded
 ```
 
 **Step 2 — Build auth-ldap Plugin from Source**
 
-The default plugin from master branch was incompatible with osTicket 1.18.x
-(caused `LDAPAuthentication contains 5 abstract methods` fatal error).
-Built the plugin as a `.phar` instead:
+The plugin from the master branch caused a fatal PHP error
+(`LDAPAuthentication contains 5 abstract methods`) due to an incompatible
+class interface in osTicket 1.18.x. Built the plugin as a `.phar` instead:
 
 ```bash
 cd /tmp
@@ -41,31 +51,28 @@ php -dphar.readonly=0 make.php build auth-ldap
 sudo cp auth-ldap.phar /var/www/html/osticket/include/plugins/
 sudo chown www-data:www-data /var/www/html/osticket/include/plugins/auth-ldap.phar
 sudo systemctl restart apache2
+# ✅ Plugin appeared in Admin Panel → Manage → Plugins as Active
 ```
 
-Plugin appeared in Admin Panel → Manage → Plugins as Active ✅
-
-**Step 4 — Install Net_LDAP2 Dependency**
+**Step 4 — Install Net_LDAP2**
 ```bash
 sudo apt install php-pear -y
 sudo pear install Net_LDAP2
-# Confirmed installed: LDAP2, LDAP2.php in /usr/share/php/Net/
+# ✅ Installed: LDAP2, LDAP2.php confirmed in /usr/share/php/Net/
 ```
 
-**Step 5 — Configure Plugin**
+**Step 5 — Configure the Plugin**
 
-Configured with:
+Configured via Admin Panel → Manage → Plugins → LDAP → Config:
 - Default Domain: `InfoTech.com`
 - DNS Server: `192.168.1.10`
 - Search User: `CN=Administrator,CN=Users,DC=InfoTech,DC=com`
 - Search Base: `DC=InfoTech,DC=com`
-- LDAP Schema: Auto-detect
+- LDAP Schema: Automatically Detect
 
 ---
 
-## ❌ Issue Encountered
-
-After saving the LDAP instance configuration, osTicket returned:
+## ❌ Error After Saving
 
 ```
 Failed opening required 'include/Net/LDAP2.php'
@@ -74,50 +81,49 @@ Failed opening required 'include/Net/LDAP2.php'
 phar:///var/www/html/osticket/include/plugins/auth-ldap.phar/include')
 ```
 
-### Root Cause
+---
 
-`Net_LDAP2` was installed by PEAR to `/usr/share/php/Net/` but the
-`auth-ldap.phar` plugin's internal include path does not reach that location.
-It only searches within its own phar archive and osTicket's include directory.
+## 🔍 Root Cause
 
-### Resolution Attempts
+`Net_LDAP2` was installed by PEAR to `/usr/share/php/Net/` — a system-wide
+location. The `auth-ldap.phar` plugin only searches within its own phar
+archive and osTicket's `include/` directory. It cannot reach
+system-wide PEAR libraries without them being explicitly present in those paths.
 
-| Attempt | Command | Result |
-|---------|---------|--------|
-| Add PEAR to php.ini include_path | `include_path = ".:/usr/share/php"` | ❌ Failed |
-| Symlink Net into osTicket include | `ln -s /usr/share/php/Net /var/www/html/osticket/include/Net` | ❌ Failed |
-| Copy Net directly into osTicket | `sudo cp -r /usr/share/php/Net /var/www/html/osticket/include/` | ❌ Failed |
+---
 
-### Conclusion
+## 🔧 Resolution Attempts
 
-Known version incompatibility between:
-- **osTicket 1.18.1**
-- **auth-ldap plugin** (built from latest source)
-- **Net_LDAP2 2.2.0** path resolution on **Ubuntu 26**
+| # | Attempt | Command | Result |
+|---|---------|---------|--------|
+| 1 | Add PEAR path to `php.ini` | `include_path = ".:/usr/share/php"` | ❌ Failed |
+| 2 | Symlink Net into osTicket | `ln -s /usr/share/php/Net /var/www/html/osticket/include/Net` | ❌ Failed |
+| 3 | Copy Net into osTicket | `sudo cp -r /usr/share/php/Net /var/www/html/osticket/include/` | ❌ Failed |
 
-The plugin's internal phar include path does not support external PEAR
-library resolution on newer Ubuntu releases. This is a documented community
-issue without an official fix for osTicket 1.18.x on Ubuntu 26.
+**Conclusion:** Known version incompatibility between osTicket 1.18.1,
+the `auth-ldap` plugin, and `Net_LDAP2` path resolution on Ubuntu 26.
+The `.phar` archive's internal include path cannot be extended to reach
+external system libraries without rebuilding the phar with the dependency bundled inside.
 
 ---
 
 ## ✅ Decision — Local Authentication
 
-osTicket's built-in local authentication was implemented instead.
+osTicket's built-in local authentication implemented instead.
 
 **Why this is acceptable:**
 - Local auth is standard in the majority of real production osTicket deployments
-- All ITSM functionality — tickets, SLAs, escalations, workflows — is unaffected
+- All ITSM functionality — tickets, SLAs, escalations, workflows — is completely unaffected
 - Agent usernames mirror AD identities for portfolio consistency
-- The LDAP troubleshooting process itself demonstrates real diagnostic skills
+- The full LDAP troubleshooting process demonstrates real diagnostic skills
 
-**Agent accounts configured:**
+**Agents configured:**
 
 | Agent | Username | Mirrors AD Identity |
 |-------|---------|-------------------|
 | Admin User | `itadmin` | `Administrator` |
-| Paula Doe | `paula.doe` | `paula.doe@InfoTech.com` |
-| Dave Doe | `dave.doe` | `dave.doe@InfoTech.com` |
+| Paula Doe | `paula` | `paula.doe@InfoTech.com` |
+| Dave Doe | `dave` | `dave.doe@InfoTech.com` |
 | Sue | `sue` | `sue@InfoTech.com` |
 
 ---
@@ -125,8 +131,9 @@ osTicket's built-in local authentication was implemented instead.
 ## 📝 Lessons Learned
 
 1. Always verify plugin compatibility against the **exact osTicket version** before installing
-2. PEAR-based PHP libraries installed system-wide are not accessible inside `.phar` archives without explicit path configuration
-3. The correct approach for future resolution would be to bundle `Net_LDAP2` inside the plugin's phar during the build process using composer
+2. PEAR libraries installed system-wide are not accessible inside `.phar` archives without bundling
+3. The correct resolution would be to rebuild the phar with `Net_LDAP2` bundled via composer during the build step
+4. Document compatibility issues honestly — the troubleshooting process is more valuable portfolio content than a clean result
 
 ---
 

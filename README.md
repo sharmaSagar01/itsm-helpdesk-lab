@@ -1,18 +1,19 @@
-# 🎫 ITSM Helpdesk Lab — osTicket with Active Directory Integration
+# 🎫 ITSM Helpdesk Lab — osTicket on Ubuntu 25
 
 > A fully functional IT Service Management system built on **osTicket** — deployed on Ubuntu 25,
-> integrated with the `InfoTech.com` Active Directory domain, and populated with real tickets
-> based on incidents from the [AD & Windows Server Labs](https://github.com/your-username/ad-windows-server-labs)
-> and [Wazuh SIEM Lab](https://github.com/your-username/wazuh-siem-lab) projects.
+> running alongside the Wazuh SIEM stack, and populated with real tickets from incidents
+> generated across the [AD & Windows Server Labs](https://github.com/your-username/ad-windows-server-labs),
+> [AD Automation Toolkit](https://github.com/your-username/ad-automation-toolkit), and
+> [Wazuh SIEM Lab](https://github.com/your-username/wazuh-siem-lab) projects.
 
 <div align="center">
 
-![osTicket](https://img.shields.io/badge/osTicket-1.18.x-blue?style=flat-square)
+![osTicket](https://img.shields.io/badge/osTicket-1.18.1-blue?style=flat-square)
 ![Ubuntu](https://img.shields.io/badge/Ubuntu-25-E95420?style=flat-square&logo=ubuntu)
 ![PHP](https://img.shields.io/badge/PHP-8.x-777BB4?style=flat-square&logo=php)
 ![MariaDB](https://img.shields.io/badge/MariaDB-10.x-003545?style=flat-square&logo=mariadb)
-![Active Directory](https://img.shields.io/badge/Domain-InfoTech.com-darkblue?style=flat-square)
-![Status](https://img.shields.io/badge/Status-In%20Progress-yellow?style=flat-square)
+![Domain](https://img.shields.io/badge/Domain-InfoTech.com-darkblue?style=flat-square)
+![Status](https://img.shields.io/badge/Status-Complete-brightgreen?style=flat-square)
 
 </div>
 
@@ -21,17 +22,17 @@
 ## 📌 Overview
 
 Every IT support role runs on a ticketing system. This project deploys **osTicket** —
-a widely-used open-source ITSM platform — integrates it with Active Directory for
-single sign-on, and simulates a real Helpdesk environment using incidents generated
-from the existing lab infrastructure.
+a widely-used open-source ITSM platform — and simulates a real Helpdesk environment
+using incidents generated from existing lab infrastructure.
 
 **What this project demonstrates:**
 
-- Deploying and configuring a production-grade ITSM platform from scratch
-- Integrating a web application with Active Directory via LDAP
-- Managing incident lifecycles with defined SLA policies
-- Documenting real P1, P2, and P3 tickets from actual lab incidents
-- Building escalation workflows and Helpdesk operational runbooks
+- Deploying and configuring a production-grade ITSM platform from scratch on Linux
+- Configuring departments, teams, SLA plans, and help topic routing
+- Diagnosing and documenting a real LDAP integration attempt with root cause analysis
+- Managing real P1, P2, and P3 incident lifecycles with defined SLA timers
+- Writing escalation workflows and a Helpdesk operational runbook
+- Connecting three lab projects into a single documented support environment
 
 ---
 
@@ -44,27 +45,24 @@ from the existing lab infrastructure.
 **Infrastructure**
 | Component | Details |
 |-----------|---------|
-| **ITSM Platform** | osTicket on Ubuntu 25 |
-| **Host IP** | `192.168.1.xx` |
+| **ITSM Platform** | osTicket 1.18.1 on Ubuntu 25 |
 | **Web URL** | `http://192.168.1.xx/osticket` |
 | **Database** | MariaDB |
-| **Web Server** | Apache2 + PHP |
-| **AD Domain** | `InfoTech.com` |
+| **Web Server** | Apache2 + PHP 8.x |
+| **Authentication** | osTicket local auth |
+| **Domain** | `InfoTech.com` |
 | **Primary DC** | `VM-WINSERV-01` — `192.168.1.10` |
 
 </td>
 <td width="50%" valign="top">
 
-**Stack**
-| Component | Tool |
-|-----------|------|
-| **ITSM** | osTicket 1.18.x |
-| **Web Server** | Apache2 |
-| **Language** | PHP 8.x |
-| **Database** | MariaDB 10.x |
-| **Auth** | osTicket local authentication |
-| **Host OS** | Ubuntu 25 Desktop |
-| **Virtualisation** | VMware Workstation Pro |
+**Agents & Departments**
+| Agent | Department | Role |
+|-------|------------|------|
+| `itadmin` | — | Administrator |
+| `paula` | IT Support / Infrastructure | Senior Agent |
+| `dave` | IT Support | Level I Agent |
+| `sue` | Security | Senior Agent |
 
 </td>
 </tr>
@@ -78,21 +76,23 @@ from the existing lab infrastructure.
 ┌──────────────────────────────────────────────────┐
 │           Ubuntu 25 Host (192.168.1.xx)          │
 │                                                  │
-│   ┌──────────────────────────────────────────┐   │
-│   │               osTicket                   │   │
-│   │          Apache2 + PHP + MariaDB         │   │
-│   │                                          │   │
-│   │  Port 80  → Web UI (HTTP)               │   │
-│   │  Local Auth → osTicket credentials      │   │
-│   └──────────────────────────────────────────┘   │
+│   osTicket 1.18.1  (Apache2 + PHP + MariaDB)    │
+│   Port 80 → http://192.168.1.xx/osticket        │
+│                                                  │
+│   Wazuh SIEM also running on this host           │
+│   Port 443 → https://192.168.1.xx               │
 └──────────────────────────────────────────────────┘
-
-Agents use osTicket local credentials — matching AD usernames
-(paula, dave, sue) for consistency with the AD lab.
-
-Browser access from any machine on 192.168.1.0/24:
-  http://192.168.1.xx/osticket
+                    │ references
+        ┌───────────┴────────────┐
+        ▼                        ▼
+┌───────────────┐       ┌───────────────┐
+│ VM-WINSERV-01 │       │ VM-WINSERV-02 │
+│ 192.168.1.10  │       │ 192.168.1.12  │
+│ Primary DC    │       │ Secondary DC  │
+└───────────────┘       └───────────────┘
 ```
+
+---
 
 ## 📁 Repository Structure
 
@@ -100,818 +100,347 @@ Browser access from any machine on 192.168.1.0/24:
 itsm-helpdesk-lab/
 │
 ├── tickets/
-│   ├── P1-replication-failure.md       # P1 ticket — AD replication error 8524    ✅
-│   ├── P2-account-lockout.md           # P2 ticket — Administrator lockout         ✅
-│   ├── P2-brute-force-detection.md     # P2 ticket — Wazuh brute force alert      ✅
-│   └── P3-new-user-onboarding.md       # P3 ticket — New user onboarding request  ✅
+│   ├── P1-replication-failure.md       # P1 — AD replication error 8524
+│   ├── P2-account-lockout.md           # P2 — Administrator locked out
+│   ├── P2-brute-force-detection.md     # P2 — Wazuh brute force alert
+│   └── P3-new-user-onboarding.md       # P3 — New hire onboarding
 │
 ├── workflows/
-│   ├── sla-policy.md                   # P1/P2/P3 SLA definitions                 ✅
-│   ├── p1-incident-response.md         # P1 escalation workflow                    ⏳
-│   └── p2-incident-response.md         # P2 incident workflow                      ⏳
+│   ├── sla-policy.md                   # SLA plan definitions
+│   ├── p1-incident-response.md         # P1 escalation workflow
+│   └── p2-incident-response.md         # P2 escalation workflow
 │
 ├── config/
-│   ├── osticket-settings.md            # osTicket configuration reference          ✅
-│   └── ad-integration.md               # AD/LDAP integration steps                ✅
+│   ├── osticket-settings.md            # Full configuration reference
+│   └── ad-integration.md               # LDAP attempt + local auth decision
 │
 ├── docs/
-│   └── runbook.md                      # Helpdesk operational runbook              ⏳
+│   └── runbook.md                      # Helpdesk operational runbook
 │
 └── README.md
 ```
-
-> ⏳ = In progress — added as the project develops
 
 ---
 
 ## 🧩 Build Progress
 
-| #   | Phase                                                      | Status       |
-| --- | ---------------------------------------------------------- | ------------ |
-| 1   | Install LAMP stack on Ubuntu                               | ✅ Completed |
-| 2   | Install and configure osTicket                             | ✅ Completed |
-| 3   | Configure departments, teams, and SLA plans                | ✅ Completed |
-| 4   | AD Authentication — LDAP attempted, local auth implemented | ✅ Complete  |
-| 5   | Create and document real tickets from lab incidents        | ✅ Complete  |
-| 6   | Write SLA policy and escalation workflows                  | ⏳ Pending   |
-| 7   | Write Helpdesk runbook + push to GitHub                    | ⏳ Pending   |
+| #   | Phase                                                      | Status |
+| --- | ---------------------------------------------------------- | ------ |
+| 1   | Install LAMP stack (Apache, PHP, MariaDB) on Ubuntu        | ✅     |
+| 2   | Install and configure osTicket 1.18.1                      | ✅     |
+| 3   | Configure departments, teams, SLA plans, and help topics   | ✅     |
+| 4   | AD/LDAP authentication — attempted, local auth implemented | ✅     |
+| 5   | Create and document 4 real tickets from lab incidents      | ✅     |
+| 6   | Write SLA policy and P1/P2 escalation workflows            | ✅     |
+| 7   | Write Helpdesk runbook + push to GitHub                    | ✅     |
 
 ---
 
-## 🎯 Tickets to Be Documented
+## 🎫 Tickets
 
-| Priority | Title                                       | Source Lab               | Status |
-| -------- | ------------------------------------------- | ------------------------ | ------ |
-| P1       | AD Replication Failure — Error 8524         | AD & Windows Server Labs | ⏳     |
-| P2       | Administrator Account Locked Out — Both DCs | Wazuh SIEM Lab           | ⏳     |
-| P2       | Brute Force Alert — wazuhtest Account       | Wazuh SIEM Lab           | ⏳     |
-| P3       | New User Onboarding — Jane Smith (IT Dept)  | AD Automation Toolkit    | ⏳     |
+| ID            | Priority | Title                               | SLA   | Source Lab               |
+| ------------- | -------- | ----------------------------------- | ----- | ------------------------ |
+| `#2026041401` | 🔴 P1    | AD Replication Failure — Error 8524 | SEV-1 | AD & Windows Server Labs |
+| `#2026041402` | 🟠 P2    | Administrator Account Locked Out    | SEV-2 | Wazuh SIEM Lab           |
+| `#2026041403` | 🟠 P2    | Brute Force Alert — wazuhtest       | SEV-2 | Wazuh SIEM Lab           |
+| `#2026041404` | 🟡 P3    | New User Onboarding — Jane Smith    | SEV-3 | AD Automation Toolkit    |
 
 ---
 
-## 📋 SLA Policy Overview
+## 📋 SLA Plans
 
-| Priority | Description                                         | First Response | Resolution |
-| -------- | --------------------------------------------------- | -------------- | ---------- |
-| **P1**   | Critical — service down, full impact                | 15 minutes     | 4 hours    |
-| **P2**   | High — service degraded, significant impact         | 1 hour         | 8 hours    |
-| **P3**   | Medium — single user affected, workaround available | 4 hours        | 24 hours   |
-| **P4**   | Low — general requests, no immediate impact         | 8 hours        | 72 hours   |
+| Plan    | Grace Period | Schedule       | Priority      |
+| ------- | ------------ | -------------- | ------------- |
+| `SEV-1` | 1 hour       | 24/7           | Critical — P1 |
+| `SEV-2` | 4 hours      | 24/7           | High — P2     |
+| `SEV-3` | 8 hours      | Business hours | Medium — P3   |
+| `SEV-4` | 72 hours     | Business hours | Low — P4      |
+
+---
 
 ---
 
 # ✅ Phase 1 — Install the LAMP Stack
 
-## 📋 What This Phase Covers
-
-osTicket runs on a **LAMP stack** — Linux, Apache, MySQL/MariaDB, and PHP.
-This phase installs and configures all four components on the Ubuntu host
-alongside the existing Wazuh SIEM stack.
-
-```bash
-
-sudo ss -tlnp | grep ":80\|:443\|:3306"
-
-```
-
-**Port check confirmed before starting:**
-
-| Port   | Status    | Used By           |
-| ------ | --------- | ----------------- |
-| `443`  | 🔴 In use | Wazuh Dashboard   |
-| `80`   | 🟢 Free   | osTicket (Apache) |
-| `3306` | 🟢 Free   | MariaDB           |
-
-osTicket runs on port `80` — no conflict with Wazuh on port `443`.
-
----
-
-## 🚀 Installation Steps
-
-**Step 1 — Update Ubuntu**
+Apache2, PHP 8.x, and MariaDB installed on Ubuntu 25 to host osTicket.
+Port 80 confirmed free — Wazuh Dashboard uses port 443 — no conflict.
 
 ```bash
 sudo apt update && sudo apt upgrade -y
-```
-
-**Step 2 — Install Apache**
-
-```bash
 sudo apt install apache2 -y
-sudo systemctl start apache2
-sudo systemctl enable apache2
-sudo systemctl status apache2
-```
-
-**Step 3 — Install MariaDB**
-
-```bash
 sudo apt install mariadb-server mariadb-client -y
-sudo systemctl start mariadb
-sudo systemctl enable mariadb
-
-# Secure the installation
-sudo mysql_secure_installation
-```
-
-When prompted during `mysql_secure_installation`:
-
-| Prompt                               | Answer                  |
-| ------------------------------------ | ----------------------- |
-| Enter current root password          | Press Enter (none yet)  |
-| Switch to unix_socket authentication | N                       |
-| Change the root password             | Y → set strong password |
-| Remove anonymous users               | Y                       |
-| Disallow root login remotely         | Y                       |
-| Remove test database                 | Y                       |
-| Reload privilege tables              | Y                       |
-
-**Step 4 — Install PHP and Required Extensions**
-
-```bash
+sudo mariadb-secure-installation          # Ubuntu 26 renamed the command
 sudo apt install php php-mysqli php-gd php-xml php-mbstring \
-    php-intl php-apcu php-imap php-curl php-zip \
-    libapache2-mod-php -y
-
-# Verify
-php --version
+    php-intl php-apcu php-curl php-zip libapache2-mod-php -y
 ```
 
-**Step 5 — Create the osTicket Database**
-
-```bash
-sudo mysql -u root -p
-```
-
-Inside MariaDB:
+**osTicket database created:**
 
 ```sql
 CREATE DATABASE osticket;
 CREATE USER 'osticket'@'localhost' IDENTIFIED BY 'osTicket@12345!';
 GRANT ALL PRIVILEGES ON osticket.* TO 'osticket'@'localhost';
 FLUSH PRIVILEGES;
-EXIT;
 ```
 
-**Step 6 — Verify All Services Running**
-
-```bash
-# Confirm Apache and MariaDB are listening
-sudo ss -tlnp | grep ":80\|:3306"
-
-# Confirm PHP is installed
-php --version
-
-# Confirm Apache is active
-sudo systemctl status apache2 --no-pager
-
-# Confirm MariaDB is active
-sudo systemctl status mariadb --no-pager
-```
-
----
-
-## ✅ Outcome
-
-- Ubuntu packages updated ✅
-- Apache2 installed and running on port `80` ✅
-- MariaDB installed, secured, and running on port `3306` ✅
-- PHP 8.x installed with all required extensions ✅
-- `osticket` database and user created in MariaDB ✅
-- Both services enabled for auto-start on boot ✅
-
----
+**Outcome:** Apache on port 80, MariaDB on port 3306, PHP 8.x — all confirmed running ✅
 
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="Screenshots/phase1-img1.png" width="45%" />
-  <img src="Screenshots/phase1-img2.png" width="45%" />
+  <img src="Screenshots/phase1-img1.png" width="45%"  />
+  <img src="Screenshots/phase1-img2.png" width="45%"  />
 </p>
 <p align="center">
-  <img src="Screenshots/phase1-img3.png" width="45%" />
-  </p>
+  <img src="Screenshots/phase1-img3.png" width="45%"  />
+</p>
 
 ---
 
-# ✅ Phase 2 — Install and Configure osTicket
-
-## 📋 What This Phase Covers
-
-With the LAMP stack running, this phase downloads osTicket, deploys it
-under Apache, runs the web-based installer, and performs the essential
-post-install configuration — departments, roles, teams, and help topics —
-to make it ready for real ticket creation.
-
----
-
-## 🚀 Installation Steps
-
-### Part A — Download and Deploy osTicket
-
-**Step 1 — Download the latest osTicket release**
+# ✅ Phase 2 — Install osTicket
 
 ```bash
 cd /tmp
 wget https://github.com/osTicket/osTicket/releases/download/v1.18.1/osTicket-v1.18.1.zip
-```
-
-**Step 2 — Extract and move to Apache web root**
-
-```bash
-sudo apt install unzip -y
 unzip osTicket-v1.18.1.zip -d osTicket
 sudo mv osTicket/upload /var/www/html/osticket
-```
-
-**Step 3 — Set correct permissions**
-
-```bash
 sudo chown -R www-data:www-data /var/www/html/osticket
-sudo chmod -R 755 /var/www/html/osticket
-```
-
-**Step 4 — Copy the sample config file**
-
-```bash
 sudo cp /var/www/html/osticket/include/ost-sampleconfig.php \
         /var/www/html/osticket/include/ost-config.php
-
 sudo chmod 0666 /var/www/html/osticket/include/ost-config.php
+sudo a2enmod rewrite && sudo systemctl restart apache2
 ```
 
-**Step 5 — Enable Apache rewrite module and restart**
+Web installer run at `http://192.168.1.xx/osticket/setup` with:
+
+| Field          | Value                                            |
+| -------------- | ------------------------------------------------ |
+| Helpdesk Name  | `InfoTech IT Support`                            |
+| Admin Username | `itadmin` _(not `admin` — reserved by osTicket)_ |
+| Database       | `osticket` / `osticket` user                     |
+
+Post-install cleanup:
 
 ```bash
-sudo a2enmod rewrite
-sudo systemctl restart apache2
-```
-
----
-
-### Part B — Run the Web Installer
-
-Open a browser on any machine on the `192.168.1.0/24` network:
-
-```
-http://192.168.1.xx/osticket/setup
-```
-
-Work through the installer screens:
-
-**Screen 1 — Prerequisites check**
-All items should show green ✅. If any PHP extension shows red — install it:
-
-```bash
-sudo apt install php-<extension-name> -y
-sudo systemctl restart apache2
-```
-
-**Screen 2 — Basic Configuration**
-
-| Field         | Value                  |
-| ------------- | ---------------------- |
-| Helpdesk Name | `InfoTech IT Support`  |
-| Default Email | `support@infotech.com` |
-
-**Screen 3 — Admin Account**
-
-| Field      | Value                             |
-| ---------- | --------------------------------- |
-| First Name | `Admin`                           |
-| Last Name  | `User`                            |
-| Email      | `admin@infotech.com`              |
-| Username   | `admin`                           |
-| Password   | Set a strong password and save it |
-
-**Screen 4 — Database Settings**
-
-| Field              | Value             |
-| ------------------ | ----------------- |
-| MySQL Table Prefix | `ost_`            |
-| MySQL Hostname     | `localhost`       |
-| MySQL Database     | `osticket`        |
-| MySQL Username     | `osticket`        |
-| MySQL Password     | `osTicket@12345!` |
-
-Click **Install Now** → wait for the installation to complete.
-
----
-
-### Part C — Post-Install Cleanup
-
-```bash
-# Remove the setup directory — required for security
 sudo rm -rf /var/www/html/osticket/setup
-
-# Lock down the config file
 sudo chmod 0644 /var/www/html/osticket/include/ost-config.php
 ```
 
----
-
-### Part D — Post-Install Configuration (Admin Panel)
-
-Navigate to the Admin Panel:
-
-```
-http://192.168.1.xx/osticket/scp
-```
-
-Log in with `admin` credentials set during installation.
-
-**Configure Departments:**
-
-Go to **Admin Panel → Agents → Departments → Add New Department**
-
-| Department       | Type    | Purpose                    |
-| ---------------- | ------- | -------------------------- |
-| `IT Support`     | Public  | General helpdesk tickets   |
-| `Infrastructure` | Private | Server and AD issues       |
-| `Security`       | Private | Wazuh alerts and incidents |
-
-**Configure Teams:**
-
-Go to **Admin Panel → Agents → Teams → Add New Team**
-
-| Team               | Purpose                                         |
-| ------------------ | ----------------------------------------------- |
-| `Level I Support`  | First response — password resets, access issues |
-| `Level II Support` | Escalated issues — server, AD, network          |
-
-**Configure Roles:**
-
-Go to **Admin Panel → Agents → Roles → Add New Role**
-
-| Role             | Permissions                          |
-| ---------------- | ------------------------------------ |
-| `Helpdesk Agent` | Create, reply, close tickets         |
-| `Senior Agent`   | All above + assign, transfer, delete |
-| `Administrator`  | Full access                          |
-
-**Configure Help Topics:**
-
-Go to **Admin Panel → Manage → Help Topics → Add New Help Topic**
-
-| Help Topic            | Department     | Priority  |
-| --------------------- | -------------- | --------- |
-| `Account Locked Out`  | IT Support     | High      |
-| `New User Onboarding` | IT Support     | Normal    |
-| `Security Alert`      | Security       | Emergency |
-| `Server / AD Issue`   | Infrastructure | High      |
-| `Password Reset`      | IT Support     | Normal    |
-| `General IT Request`  | IT Support     | Low       |
-
----
-
-### Part E — Configure Email Settings
-
-Go to **Admin Panel → Emails → Emails → Add New Email**
-
-| Field         | Value                  |
-| ------------- | ---------------------- |
-| Email Address | `support@infotech.com` |
-| Name          | `InfoTech IT Support`  |
-| Department    | `IT Support`           |
-
-This is the address users see when they receive ticket notifications.
-
----
-
-## ✅ Outcome
-
-- osTicket downloaded and deployed to `/var/www/html/osticket` ✅
-- Web installer completed successfully ✅
-- Setup directory removed — installation secured ✅
-- Admin panel accessible at `http://192.168.1.xx/osticket/scp` ✅
-- Departments created: IT Support, Infrastructure, Security ✅
-- Teams created: Level I and Level II Support ✅
-- Help topics configured for all common ticket types ✅
-
----
+**Outcome:** Admin panel live at `http://192.168.1.xx/osticket/scp` ✅
 
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="Screenshots/phase2-img1.png" width="45%" />
-  <img src="Screenshots/phase2-img2.png" width="45%" />
+  <img src="Screenshots/phase2-img1.png" width="45%"  />
+  <img src="Screenshots/phase2-img2.png" width="45%"  />
 </p>
 
 ---
 
-# ✅ Phase 3 — Configure Departments, Teams, SLA Plans & Agents
+# ✅ Phase 3 — Departments, Teams, SLA Plans & Help Topics
 
-## 📋 What This Phase Covers
+> Full config reference: [`config/osticket-settings.md`](config/osticket-settings.md)
 
-With osTicket installed, this phase builds the operational structure —
-SLA plans, agents, and ticket routing — so the system behaves like a
-real Helpdesk environment. Every setting configured here directly maps
-to the incidents documented in the `tickets/` and `workflows/` folders.
+**Departments created:** IT Support (public), Infrastructure (private), Security (private)
 
-> Full configuration reference: [`config/osticket-settings.md`](config/osticket-settings.md)
-> Full SLA policy: [`workflows/sla-policy.md`](workflows/sla-policy.md)
+**Teams created:** Level I Support (Dave), Level II Support (Paula + Sue)
 
----
+**SLA Plans configured:**
 
-## ⚙️ Part A — Configure SLA Plans
+| Plan  | Grace  | Schedule       |
+| ----- | ------ | -------------- |
+| SEV-1 | 1 hr   | 24/7           |
+| SEV-2 | 4 hrs  | 24/7           |
+| SEV-3 | 8 hrs  | Business hours |
+| SEV-4 | 72 hrs | Business hours |
 
-Navigate to: **Admin Panel → Manage → SLA Plans → Add New SLA Plan**
+**Help Topics → SLA mapping:**
 
-Create all four plans:
+| Help Topic          | Department     | SLA   |
+| ------------------- | -------------- | ----- |
+| Security Alert      | Security       | SEV-1 |
+| Server / AD Issue   | Infrastructure | SEV-1 |
+| Account Locked Out  | IT Support     | SEV-2 |
+| New User Onboarding | IT Support     | SEV-3 |
+| Password Reset      | IT Support     | SEV-3 |
+| General IT Request  | IT Support     | SEV-4 |
 
-| SLA Plan | Grace Period | Schedule       | Used For                      |
-| -------- | ------------ | -------------- | ----------------------------- |
-| `SEV-1`  | 1 hour       | 24/7           | Critical — service down       |
-| `SEV-2`  | 4 hours      | 24/7           | High — significant impact     |
-| `SEV-3`  | 8 hours      | Business hours | Medium — single user affected |
-| `SEV-4`  | 72 hours     | Business hours | Low — general requests        |
+**Outcome:** All departments, teams, SLA plans, and help topics configured ✅
 
-**How to create each one:**
+## 📸 Screenshots
 
-- Click **Add New SLA Plan**
-- Set the name (e.g. `SEV-1`)
-- Set Grace Period in hours
-- Set Schedule (`24/7` or `Monday-Friday 8am-5pm`)
-- Enable → Save
 
----
+<p align="center">
+  <img src="Screenshots/phase3-img1.png" width="45%"  />
+  <img src="Screenshots/phase3-img2.png" width="45%"  />
+</p>
 
-## ⚙️ Part B — Configure Agents
-
-Navigate to: **Admin Panel → Agents → Add New Agent**
-
-Create agents using your existing AD lab users:
-
-| Name      | Email              | Username | Department | Role           | Team             |
-| --------- | ------------------ | -------- | ---------- | -------------- | ---------------- |
-| Paula Doe | paula@infotech.com | paula    | IT Support | Senior Agent   | Level II Support |
-| Dave Doe  | dave@infotech.com  | dave     | IT Support | Helpdesk Agent | Level I Support  |
-| Sue       | sue@infotech.com   | sue      | Security   | Senior Agent   | Level II Support |
-
-**For each agent:**
-
-- Fill in name and email
-- Set username matching their AD account
-- Assign department and role
-- Assign to team
-- Set a temporary password — they will reset on first login
+<p align="center">
+  <img src="Screenshots/phase3-img3.png" width="45%"  />
+</p>
 
 ---
 
-## ⚙️ Part C — Configure Users (Ticket Submitters)
+# ✅ Phase 4 — Agent Authentication
 
-Navigate to: **Agent Panel → Users → Add User**
+> Full LDAP attempt details: [`config/ad-integration.md`](config/ad-integration.md)
 
-These are the end users who submit tickets — also mapped to your AD lab:
+## LDAP Integration — Attempted
 
-| Name          | Email                 |
-| ------------- | --------------------- |
-| Ram Doe       | rdoe@infotech.com     |
-| Jessy Merch   | jmerch@infotech.com   |
-| Alice Johnson | ajohnson@infotech.com |
+LDAP was attempted to allow agents to authenticate with InfoTech.com AD credentials.
+All steps were completed — PHP LDAP extension, plugin built from source as `.phar`,
+`Net_LDAP2` installed via PEAR — but a version incompatibility between
+osTicket 1.18.1 and Net_LDAP2 path resolution on Ubuntu 26 prevented successful connection.
 
----
+| Attempt                             | Result          |
+| ----------------------------------- | --------------- |
+| Built `auth-ldap.phar` from source  | ✅ Deployed     |
+| Installed `Net_LDAP2` via PEAR      | ✅ Installed    |
+| Added PEAR path to `php.ini`        | ❌ Still failed |
+| Symlinked Net into osTicket include | ❌ Still failed |
+| Copied Net directly into osTicket   | ❌ Still failed |
 
-## ⚙️ Part D — Link Help Topics to Departments and SLA Plans
+**Error:** `Failed opening required 'include/Net/LDAP2.php'` — phar internal
+paths cannot resolve system-wide PEAR libraries on Ubuntu 26.
 
-Navigate to: **Admin Panel → Manage → Help Topics**
+## Local Authentication — Implemented
 
-Update each help topic with the correct department and SLA:
+osTicket local auth used instead — standard in most production deployments.
+Agent usernames match AD identities for portfolio consistency:
 
-| Help Topic            | Department     | SLA   | Priority  |
-| --------------------- | -------------- | ----- | --------- |
-| `Account Locked Out`  | IT Support     | SEV-2 | High      |
-| `Security Alert`      | Security       | SEV-1 | Emergency |
-| `Server / AD Issue`   | Infrastructure | SEV-1 | High      |
-| `New User Onboarding` | IT Support     | SEV-3 | Normal    |
-| `Password Reset`      | IT Support     | SEV-3 | Normal    |
-| `General IT Request`  | IT Support     | SEV-4 | Low       |
+| Agent     | Username    | AD Identity              |
+| --------- | ----------- | ------------------------ |
+| Admin     | `itadmin`   | `Administrator`          |
+| Paula Doe | `paula` | `paula.doe@InfoTech.com` |
+| Dave Doe  | `dave`  | `dave.doe@InfoTech.com`  |
+| Sue       | `sue`       | `sue@InfoTech.com`       |
 
----
-
-## ⚙️ Part E — Configure Ticket Settings
-
-Navigate to: **Admin Panel → Settings → Tickets**
-
-| Setting              | Value                | Reason                                    |
-| -------------------- | -------------------- | ----------------------------------------- |
-| Default SLA          | `SEV-3`              | Safe default for unclassified tickets     |
-| Default Priority     | `Normal`             | Agents can escalate as needed             |
-| Allow HTML           | `Yes`                | Cleaner ticket formatting                 |
-| Ticket Number Format | `#%YYYY%MM%DD-%####` | Date-based numbering                      |
-| Auto-assign tickets  | `Yes`                | Route to correct department automatically |
-
----
-
-## ✅ Outcome
-
-- SLA plans SEV-1 through SEV-4 configured with correct grace periods ✅
-- Agents created — Paula, Dave, Sue — matching existing AD lab users ✅
-- End users created — Ram, John, Alice — matching onboarded AD accounts ✅
-- Help topics linked to correct departments and SLA plans ✅
-- Ticket settings configured — auto-assign and HTML enabled ✅
-
----
+**Outcome:** All agents active, LDAP attempt fully documented ✅
 
 ## 📸 Screenshots
 
 <p align="center">
-  <img src="Screenshots/phase3-img1.png" width="45%" />
-  <img src="Screenshots/phase3-img2.png" width="45%" />
+  <img src="Screenshots/phase4-img1.png" width="45%"  />
 </p>
-<p align="center">
-  <img src="Screenshots/phase3-img3.png" width="45%" />
-  </p>
 
 ---
 
-# ✅ Phase 4 — Agent Authentication Setup
+# ✅ Phase 5 — Real Tickets from Lab Incidents
 
-## 📋 What This Phase Covers
+Four real tickets created in osTicket — each sourced from an actual incident
+across the three previous lab projects.
 
-This phase documents the authentication approach for osTicket agents —
-including the LDAP integration that was attempted, the technical issue
-encountered, and the pragmatic decision to use local authentication instead.
+> Full ticket documentation in [`tickets/`](tickets/)
 
-> Full technical details: [`config/ad-integration.md`](config/ad-integration.md)
+## 🔴 Ticket #2026041401 — P1 — AD Replication Failure
 
----
+| Field               | Details                |
+| ------------------- | ---------------------- |
+| **SLA**             | SEV-1 — 1 hour grace   |
+| **Department**      | Infrastructure         |
+| **Assigned To**     | Paula Doe              |
+| **Resolution Time** | 1h 45min ✅ within SLA |
 
-## 🔍 LDAP Integration — Attempted
+**Summary:** AD replication failing with error 8524 (DNS lookup failure) —
+10 consecutive failures between VM-WINSERV-01 and VM-WINSERV-02.
+Root cause: DNS misconfiguration on secondary DC + IPv6 interference.
+Fixed via DNS reorder, `ipconfig /registerdns`, IPv6 disabled, `repadmin /syncall /AdeP`.
 
-LDAP authentication was attempted to allow agents to log in with their
-`InfoTech.com` AD credentials directly. The following was completed:
-
-```bash
-# PHP LDAP extension installed
-sudo apt install php-ldap -y
-
-# Plugin built from source using composer
-cd /tmp && git clone https://github.com/osTicket/osTicket-plugins.git
-cd osTicket-plugins && composer install
-php -dphar.readonly=0 make.php build auth-ldap
-
-# Plugin deployed as .phar (correct format for osTicket 1.18.x)
-sudo cp auth-ldap.phar /var/www/html/osticket/include/plugins/
-
-# Net_LDAP2 dependency installed via PEAR
-sudo apt install php-pear -y
-sudo pear install Net_LDAP2
-```
-
-### Issue Encountered
-
-After enabling the plugin, osTicket returned:
-
-```
-Failed opening required 'include/Net/LDAP2.php'
-```
-
-**Root cause:** `Net_LDAP2` was installed to `/usr/share/php/Net/` but
-the `auth-ldap.phar` plugin expected it within osTicket's own include path.
-Multiple resolution attempts were made:
-
-| Attempt                                               | Result          |
-| ----------------------------------------------------- | --------------- |
-| Adding PEAR path to `php.ini` `include_path`          | ❌ Still failed |
-| Symlinking `/usr/share/php/Net` into osTicket include | ❌ Still failed |
-| Copying Net directory directly into osTicket include  | ❌ Still failed |
-
-**Conclusion:** Version incompatibility between osTicket 1.18.1,
-the `auth-ldap` plugin build, and `Net_LDAP2` path resolution on
-Ubuntu 26. Known issue in the osTicket community with newer Ubuntu releases.
+📄 [`tickets/P1-replication-failure.md`](tickets/P1-replication-failure.md)
 
 ---
 
-## ✅ Decision — Local Authentication
+## 🟠 Ticket #2026041402 — P2 — Administrator Account Locked Out
 
-osTicket's built-in local authentication was used instead. This is
-standard practice in most production osTicket deployments.
+| Field               | Details                |
+| ------------------- | ---------------------- |
+| **SLA**             | SEV-2 — 4 hour grace   |
+| **Department**      | IT Support             |
+| **Assigned To**     | Paula Doe              |
+| **Resolution Time** | 1h 30min ✅ within SLA |
 
-Agent accounts were created with usernames **matching their AD identities**
-for consistency across the lab portfolio:
+**Summary:** Built-in Administrator locked out on both DCs during Wazuh lockout
+testing. Local password also unknown. Recovered via Utilman.exe replacement
+technique through Windows Recovery Mode on both servers.
 
-| osTicket Agent | Username    | Mirrors AD Account       | Department |
-| -------------- | ----------- | ------------------------ | ---------- |
-| Admin User     | `itadmin`   | `Administrator`          | —          |
-| Paula Doe      | `paula.doe` | `paula.doe@InfoTech.com` | IT Support |
-| Dave Doe       | `dave.doe`  | `dave.doe@InfoTech.com`  | IT Support |
-| Sue            | `sue`       | `sue@InfoTech.com`       | Security   |
-
----
-
-## ⚙️ Setting Agent Passwords
-
-Navigate to: **Admin Panel → Agents → click agent name → Account tab**
-
-| Setting                 | Value                                    |
-| ----------------------- | ---------------------------------------- |
-| Password                | Set a secure password per agent          |
-| Require password change | ✅ Enabled — forces reset on first login |
-| Agent status            | Active                                   |
+📄 [`tickets/P2-account-lockout.md`](tickets/P2-account-lockout.md)
 
 ---
 
-## ✅ Outcome
+## 🟠 Ticket #2026041403 — P2 — Brute Force Alert
 
-- LDAP integration fully attempted and documented with root cause analysis ✅
-- `auth-ldap.phar` plugin built from source and deployed ✅
-- `Net_LDAP2` installed via PEAR ✅
-- Version compatibility issue identified — documented in `config/ad-integration.md` ✅
-- Local authentication implemented — all agents active and verified ✅
-- Agent usernames match AD identities for portfolio consistency ✅
+| Field               | Details                |
+| ------------------- | ---------------------- |
+| **SLA**             | SEV-2 — 4 hour grace   |
+| **Department**      | Security               |
+| **Assigned To**     | Sue                    |
+| **Resolution Time** | 1h 05min ✅ within SLA |
 
----
+**Summary:** Wazuh Rule 100102 (Level 12) fired — 5 failed logins for `wazuhtest`
+within 32 seconds from CLIENT-WIN11. Investigated, confirmed as intentional rule
+validation test. Account unlocked, rules confirmed working correctly.
 
-## 📸 Screenshots
-
-<p align="center">
-    <img src="Screenshots/phase4-img1.png" width="45%" />
- 
-</p>
----
+📄 [`tickets/P2-brute-force-detection.md`](tickets/P2-brute-force-detection.md)
 
 ---
 
-# ✅ Phase 5 — Creating Real Tickets from Lab Incidents
+## 🟡 Ticket #2026041404 — P3 — New User Onboarding
 
-## 📋 What This Phase Covers
+| Field               | Details                |
+| ------------------- | ---------------------- |
+| **SLA**             | SEV-3 — 8 hour grace   |
+| **Department**      | IT Support             |
+| **Assigned To**     | Dave Doe               |
+| **Resolution Time** | 2h 30min ✅ within SLA |
 
-This phase creates four real tickets in osTicket based on actual incidents
-from Projects 1 and 2 — turning the lab into a simulated Helpdesk environment
-with a real ticket queue, SLA timers, and agent assignments.
+**Summary:** New hire Jane Smith starting Monday. Account created using
+`New-UserOnboard.ps1` from the AD Automation Toolkit — one command provisioned
+the AD account, OU placement, group membership, and drive mapping.
+Estimated 25 minutes saved vs manual ADUC process.
 
-Each ticket is also documented as a standalone markdown file in the
-`tickets/` folder — readable without needing osTicket running.
+📄 [`tickets/P3-new-user-onboarding.md`](tickets/P3-new-user-onboarding.md)
 
-> Full ticket details in the [`tickets/`](tickets/) folder.
-
----
-
-## 🎫 Tickets Created
-
-| #   | Priority | Title                                       | Source                | SLA   | Assigned To |
-| --- | -------- | ------------------------------------------- | --------------------- | ----- | ----------- |
-| 1   | 🔴 P1    | AD Replication Failure — Error 8524         | AD Lab                | SEV-1 | Paula Doe   |
-| 2   | 🟠 P2    | Administrator Account Locked Out — Both DCs | Wazuh SIEM Lab        | SEV-2 | Paula Doe   |
-| 3   | 🟠 P2    | Brute Force Alert — wazuhtest Account       | Wazuh SIEM Lab        | SEV-2 | Sue         |
-| 4   | 🟡 P3    | New User Onboarding — Jane Smith            | AD Automation Toolkit | SEV-3 | Dave Doe    |
 
 ---
 
-## 🎫 How to Create Each Ticket in osTicket
+# ✅ Phase 6 & 7 — SLA Workflows, Runbook & Final Documentation
 
-Navigate to: **Agent Panel → Tickets → New Ticket**
+> Escalation workflows: [`workflows/`](workflows/)
+> Operational runbook: [`docs/runbook.md`](docs/runbook.md)
+> SLA policy: [`workflows/sla-policy.md`](workflows/sla-policy.md)
 
-For each ticket fill in:
+## Auto-Routing Configuration
 
-| Field              | Details                                      |
-| ------------------ | -------------------------------------------- |
-| **Help Topic**     | Select the matching help topic               |
-| **Issue Summary**  | Short title — matches the table above        |
-| **Department**     | IT Support / Infrastructure / Security       |
-| **SLA Plan**       | SEV-1 through SEV-3 as shown above           |
-| **Assigned To**    | Agent as shown above                         |
-| **Priority**       | Emergency / High / Normal                    |
-| **Ticket Details** | Full description from the ticket files below |
+| Help Topic          | Routes To           | First Responder |
+| ------------------- | ------------------- | --------------- |
+| Security Alert      | Security dept       | Sue             |
+| Server / AD Issue   | Infrastructure dept | Paula Doe       |
+| Account Locked Out  | IT Support dept     | Dave Doe        |
+| New User Onboarding | IT Support dept     | Dave Doe        |
+| Password Reset      | IT Support dept     | Dave Doe        |
 
----
+## Real Troubleshooting Documented
 
-## 🔴 Ticket 1 — AD Replication Failure (P1 / SEV-1)
-
-**Help Topic:** `Server / AD Issue`
-**Department:** Infrastructure
-**Assigned To:** Paula Doe
-**Priority:** Emergency
-
-**Ticket Description:**
-
-```
-AD replication is failing between VM-DEV-WINSERV-01 and VM-DEV-WINSERV-02.
-
-Error: 8524 (0x214c) — The DSA operation is unable to proceed because
-of a DNS lookup failure.
-
-Observed: 10 consecutive replication failures since 2026-04-06 09:08:50.
-Affected partitions: DC=InfoTech,DC=com, CN=Configuration, CN=Schema.
-DomainDnsZones partition replicated successfully.
-
-Impact: Changes made on primary DC are not replicating to secondary DC.
-Domain is running on a single effective DC — fault tolerance is lost.
-
-Steps taken so far: Ran repadmin /showrepl — confirmed failures.
-Ping to 192.168.1.12 is successful — network is not the issue.
-```
-
-**Resolution documented in:** [`tickets/P1-replication-failure.md`](tickets/P1-replication-failure.md)
+| Issue                                 | Root Cause                                            | Fix                                       |
+| ------------------------------------- | ----------------------------------------------------- | ----------------------------------------- |
+| LDAP plugin fatal error               | Folder-based plugin incompatible with osTicket 1.18.x | Built `.phar` from source                 |
+| `Net_LDAP2` path error                | PEAR library inaccessible inside `.phar` archive      | Local auth used instead — documented      |
+| `mysql_secure_installation` not found | Ubuntu 26 renamed the command                         | Used `mariadb-secure-installation`        |
+| `admin` username rejected             | Reserved word in osTicket                             | Used `itadmin`                            |
+| `php-imap` not found                  | Ubuntu 26 package naming — optional extension         | Skipped — not required for core functions |
 
 ---
 
-## 🟠 Ticket 2 — Administrator Account Locked Out (P2 / SEV-2)
+<div align="center">
 
-**Help Topic:** `Account Locked Out`
-**Department:** IT Support
-**Assigned To:** Paula Doe
-**Priority:** High
+![Complete](https://img.shields.io/badge/Project-Complete-brightgreen?style=flat-square)
 
-**Ticket Description:**
+**🎫 Built for learning • ⭐ Star if you find this useful**
 
-```
-The built-in Administrator account is locked out on both Domain Controllers
-(VM-DEV-WINSERV-01 and VM-DEV-WINSERV-02).
+_Part of a series:_
+[AD & Windows Server Labs](https://github.com/your-username/ad-windows-server-labs) •
+[AD Automation Toolkit](https://github.com/your-username/ad-automation-toolkit) •
+[Wazuh SIEM Lab](https://github.com/your-username/wazuh-siem-lab) •
+[ITSM Helpdesk Lab](https://github.com/your-username/itsm-helpdesk-lab)
 
-Neither DC can be logged into using domain Administrator credentials.
-Local Administrator password is also unknown.
-
-Impact: Full administrative access to the domain is unavailable.
-No GPO changes, AD management, or server administration can be performed.
-
-Urgency: Critical — all AD administration is blocked.
-```
-
-**Resolution documented in:** [`tickets/P2-account-lockout.md`](tickets/P2-account-lockout.md)
-
----
-
-## 🟠 Ticket 3 — Brute Force Alert (P2 / SEV-2)
-
-**Help Topic:** `Security Alert`
-**Department:** Security
-**Assigned To:** Sue
-**Priority:** High
-
-**Ticket Description:**
-
-```
-Wazuh SIEM has generated a Level 12 (High) alert — Rule 100102.
-
-Alert: Brute Force Detected — 5+ failed logins for wazuhtest
-within a 2-minute window on VM-DEV-WINSERV-01.
-
-Event IDs triggered: 4625 (x5) → 4740 (account lockout)
-Source agent: VM-WINSERV-01 (192.168.1.10)
-Affected account: INFOTECH\wazuhtest
-Source IP: 192.168.1.105
-
-Action required: Investigate source IP, unlock account if legitimate,
-block source if external or unauthorised.
-```
-
-**Resolution documented in:** [`tickets/P2-brute-force-detection.md`](tickets/P2-brute-force-detection.md)
-
----
-
-## 🟡 Ticket 4 — New User Onboarding (P3 / SEV-3)
-
-**Help Topic:** `New User Onboarding`
-**Department:** IT Support
-**Assigned To:** Dave Doe
-**Priority:** Normal
-
-**Ticket Description:**
-
-```
-New hire starting on Monday — account setup required.
-
-Name: Jane Smith
-Department: IT
-Job Title: Support Analyst
-Manager: Paula Doe (paula.doe)
-Start Date: 2026-04-14
-
-Requirements:
-- Create AD account with correct OU and group assignments
-- Set temporary password (force change at first login)
-- Map network drives (IT_Docs, Personal)
-- Confirm access to shared IT_Staff resources
-- Send welcome email with login instructions
-```
-
-**Resolution documented in:** [`tickets/P3-new-user-onboarding.md`](tickets/P3-new-user-onboarding.md)
-
----
-
-## ✅ Outcome
-
-- 4 real tickets created in osTicket from actual lab incidents ✅
-- Tickets span three departments — IT Support, Infrastructure, Security ✅
-- SLA timers active on all tickets (SEV-1 through SEV-3) ✅
-- All tickets assigned to correct agents matching their expertise ✅
-- Each ticket fully documented as a standalone markdown file in `tickets/` ✅
-- Ticket queue reflects a realistic Helpdesk day — P1 through P3 priorities ✅
-
----
-
-## 📸 Screenshots
-
-<p align="center">
-  <img src="images/phase5-ticket-queue.png" width="45%"
-       title="osTicket agent panel — all 4 tickets in the queue" />
-  <img src="images/phase5-p1-ticket.png" width="45%"
-       title="P1 ticket — AD Replication Failure with SEV-1 SLA active" />
-</p>
-<p align="center">
-  <img src="images/phase5-p2-security.png" width="45%"
-       title="P2 Security ticket — Wazuh brute force alert assigned to Sue" />
-</p>
----
+</div>
