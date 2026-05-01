@@ -62,7 +62,7 @@ from the existing lab infrastructure.
 | **Web Server** | Apache2 |
 | **Language** | PHP 8.x |
 | **Database** | MariaDB 10.x |
-| **Auth** | LDAP → Active Directory |
+| **Auth** | osTicket local authentication |
 | **Host OS** | Ubuntu 25 Desktop |
 | **Virtualisation** | VMware Workstation Pro |
 
@@ -83,25 +83,16 @@ from the existing lab infrastructure.
 │   │          Apache2 + PHP + MariaDB         │   │
 │   │                                          │   │
 │   │  Port 80  → Web UI (HTTP)               │   │
-│   │  LDAP 389 → AD Authentication           │   │
+│   │  Local Auth → osTicket credentials      │   │
 │   └──────────────────────────────────────────┘   │
-└──────────────────────┬───────────────────────────┘
-                       │ LDAP authentication
-                       ↕
-┌──────────────────────────────────────────────────┐
-│       VM-DEV-WINSERV-01 (192.168.1.10)          │
-│       Active Directory — InfoTech.com            │
-│                                                  │
-│  Users: Paula Doe, Dave Doe, Ram Doe,           │
-│         Sue, wazuhtest, helpdesk staff           │
 └──────────────────────────────────────────────────┘
+
+Agents use osTicket local credentials — matching AD usernames
+(paula, dave, sue) for consistency with the AD lab.
 
 Browser access from any machine on 192.168.1.0/24:
   http://192.168.1.xx/osticket
-  Login with InfoTech.com AD credentials
 ```
-
----
 
 ## 📁 Repository Structure
 
@@ -109,10 +100,10 @@ Browser access from any machine on 192.168.1.0/24:
 itsm-helpdesk-lab/
 │
 ├── tickets/
-│   ├── P1-replication-failure.md       # P1 ticket — AD replication error 8524    ⏳
-│   ├── P2-account-lockout.md           # P2 ticket — Administrator lockout         ⏳
-│   ├── P2-brute-force-detection.md     # P2 ticket — Wazuh brute force alert      ⏳
-│   └── P3-new-user-onboarding.md       # P3 ticket — New user onboarding request  ⏳
+│   ├── P1-replication-failure.md       # P1 ticket — AD replication error 8524    ✅
+│   ├── P2-account-lockout.md           # P2 ticket — Administrator lockout         ✅
+│   ├── P2-brute-force-detection.md     # P2 ticket — Wazuh brute force alert      ✅
+│   └── P3-new-user-onboarding.md       # P3 ticket — New user onboarding request  ✅
 │
 ├── workflows/
 │   ├── sla-policy.md                   # P1/P2/P3 SLA definitions                 ✅
@@ -135,15 +126,15 @@ itsm-helpdesk-lab/
 
 ## 🧩 Build Progress
 
-| #   | Phase                                               | Status       |
-| --- | --------------------------------------------------- | ------------ |
-| 1   | Install LAMP stack on Ubuntu                        | ✅ Completed |
-| 2   | Install and configure osTicket                      | ✅ Completed |
-| 3   | Configure departments, teams, and SLA plans         | ✅ Completed |
-| 4   | AD Authentication — LDAP attempted, local auth implemented | ✅ Complete |
-| 5   | Create and document real tickets from lab incidents | ⏳ Pending   |
-| 6   | Write SLA policy and escalation workflows           | ⏳ Pending   |
-| 7   | Write Helpdesk runbook + push to GitHub             | ⏳ Pending   |
+| #   | Phase                                                      | Status       |
+| --- | ---------------------------------------------------------- | ------------ |
+| 1   | Install LAMP stack on Ubuntu                               | ✅ Completed |
+| 2   | Install and configure osTicket                             | ✅ Completed |
+| 3   | Configure departments, teams, and SLA plans                | ✅ Completed |
+| 4   | AD Authentication — LDAP attempted, local auth implemented | ✅ Complete  |
+| 5   | Create and document real tickets from lab incidents        | ✅ Complete  |
+| 6   | Write SLA policy and escalation workflows                  | ⏳ Pending   |
+| 7   | Write Helpdesk runbook + push to GitHub                    | ⏳ Pending   |
 
 ---
 
@@ -730,7 +721,6 @@ Navigate to: **Admin Panel → Agents → click agent name → Account tab**
 - Local authentication implemented — all agents active and verified ✅
 - Agent usernames match AD identities for portfolio consistency ✅
 
-
 ---
 
 ## 📸 Screenshots
@@ -738,5 +728,190 @@ Navigate to: **Admin Panel → Agents → click agent name → Account tab**
 <p align="center">
     <img src="Screenshots/phase4-img1.png" width="45%" />
  
+</p>
+---
+
+---
+
+# ✅ Phase 5 — Creating Real Tickets from Lab Incidents
+
+## 📋 What This Phase Covers
+
+This phase creates four real tickets in osTicket based on actual incidents
+from Projects 1 and 2 — turning the lab into a simulated Helpdesk environment
+with a real ticket queue, SLA timers, and agent assignments.
+
+Each ticket is also documented as a standalone markdown file in the
+`tickets/` folder — readable without needing osTicket running.
+
+> Full ticket details in the [`tickets/`](tickets/) folder.
+
+---
+
+## 🎫 Tickets Created
+
+| #   | Priority | Title                                       | Source                | SLA   | Assigned To |
+| --- | -------- | ------------------------------------------- | --------------------- | ----- | ----------- |
+| 1   | 🔴 P1    | AD Replication Failure — Error 8524         | AD Lab                | SEV-1 | Paula Doe   |
+| 2   | 🟠 P2    | Administrator Account Locked Out — Both DCs | Wazuh SIEM Lab        | SEV-2 | Paula Doe   |
+| 3   | 🟠 P2    | Brute Force Alert — wazuhtest Account       | Wazuh SIEM Lab        | SEV-2 | Sue         |
+| 4   | 🟡 P3    | New User Onboarding — Jane Smith            | AD Automation Toolkit | SEV-3 | Dave Doe    |
+
+---
+
+## 🎫 How to Create Each Ticket in osTicket
+
+Navigate to: **Agent Panel → Tickets → New Ticket**
+
+For each ticket fill in:
+
+| Field              | Details                                      |
+| ------------------ | -------------------------------------------- |
+| **Help Topic**     | Select the matching help topic               |
+| **Issue Summary**  | Short title — matches the table above        |
+| **Department**     | IT Support / Infrastructure / Security       |
+| **SLA Plan**       | SEV-1 through SEV-3 as shown above           |
+| **Assigned To**    | Agent as shown above                         |
+| **Priority**       | Emergency / High / Normal                    |
+| **Ticket Details** | Full description from the ticket files below |
+
+---
+
+## 🔴 Ticket 1 — AD Replication Failure (P1 / SEV-1)
+
+**Help Topic:** `Server / AD Issue`
+**Department:** Infrastructure
+**Assigned To:** Paula Doe
+**Priority:** Emergency
+
+**Ticket Description:**
+
+```
+AD replication is failing between VM-DEV-WINSERV-01 and VM-DEV-WINSERV-02.
+
+Error: 8524 (0x214c) — The DSA operation is unable to proceed because
+of a DNS lookup failure.
+
+Observed: 10 consecutive replication failures since 2026-04-06 09:08:50.
+Affected partitions: DC=InfoTech,DC=com, CN=Configuration, CN=Schema.
+DomainDnsZones partition replicated successfully.
+
+Impact: Changes made on primary DC are not replicating to secondary DC.
+Domain is running on a single effective DC — fault tolerance is lost.
+
+Steps taken so far: Ran repadmin /showrepl — confirmed failures.
+Ping to 192.168.1.12 is successful — network is not the issue.
+```
+
+**Resolution documented in:** [`tickets/P1-replication-failure.md`](tickets/P1-replication-failure.md)
+
+---
+
+## 🟠 Ticket 2 — Administrator Account Locked Out (P2 / SEV-2)
+
+**Help Topic:** `Account Locked Out`
+**Department:** IT Support
+**Assigned To:** Paula Doe
+**Priority:** High
+
+**Ticket Description:**
+
+```
+The built-in Administrator account is locked out on both Domain Controllers
+(VM-DEV-WINSERV-01 and VM-DEV-WINSERV-02).
+
+Neither DC can be logged into using domain Administrator credentials.
+Local Administrator password is also unknown.
+
+Impact: Full administrative access to the domain is unavailable.
+No GPO changes, AD management, or server administration can be performed.
+
+Urgency: Critical — all AD administration is blocked.
+```
+
+**Resolution documented in:** [`tickets/P2-account-lockout.md`](tickets/P2-account-lockout.md)
+
+---
+
+## 🟠 Ticket 3 — Brute Force Alert (P2 / SEV-2)
+
+**Help Topic:** `Security Alert`
+**Department:** Security
+**Assigned To:** Sue
+**Priority:** High
+
+**Ticket Description:**
+
+```
+Wazuh SIEM has generated a Level 12 (High) alert — Rule 100102.
+
+Alert: Brute Force Detected — 5+ failed logins for wazuhtest
+within a 2-minute window on VM-DEV-WINSERV-01.
+
+Event IDs triggered: 4625 (x5) → 4740 (account lockout)
+Source agent: VM-WINSERV-01 (192.168.1.10)
+Affected account: INFOTECH\wazuhtest
+Source IP: 192.168.1.105
+
+Action required: Investigate source IP, unlock account if legitimate,
+block source if external or unauthorised.
+```
+
+**Resolution documented in:** [`tickets/P2-brute-force-detection.md`](tickets/P2-brute-force-detection.md)
+
+---
+
+## 🟡 Ticket 4 — New User Onboarding (P3 / SEV-3)
+
+**Help Topic:** `New User Onboarding`
+**Department:** IT Support
+**Assigned To:** Dave Doe
+**Priority:** Normal
+
+**Ticket Description:**
+
+```
+New hire starting on Monday — account setup required.
+
+Name: Jane Smith
+Department: IT
+Job Title: Support Analyst
+Manager: Paula Doe (paula.doe)
+Start Date: 2026-04-14
+
+Requirements:
+- Create AD account with correct OU and group assignments
+- Set temporary password (force change at first login)
+- Map network drives (IT_Docs, Personal)
+- Confirm access to shared IT_Staff resources
+- Send welcome email with login instructions
+```
+
+**Resolution documented in:** [`tickets/P3-new-user-onboarding.md`](tickets/P3-new-user-onboarding.md)
+
+---
+
+## ✅ Outcome
+
+- 4 real tickets created in osTicket from actual lab incidents ✅
+- Tickets span three departments — IT Support, Infrastructure, Security ✅
+- SLA timers active on all tickets (SEV-1 through SEV-3) ✅
+- All tickets assigned to correct agents matching their expertise ✅
+- Each ticket fully documented as a standalone markdown file in `tickets/` ✅
+- Ticket queue reflects a realistic Helpdesk day — P1 through P3 priorities ✅
+
+---
+
+## 📸 Screenshots
+
+<p align="center">
+  <img src="images/phase5-ticket-queue.png" width="45%"
+       title="osTicket agent panel — all 4 tickets in the queue" />
+  <img src="images/phase5-p1-ticket.png" width="45%"
+       title="P1 ticket — AD Replication Failure with SEV-1 SLA active" />
+</p>
+<p align="center">
+  <img src="images/phase5-p2-security.png" width="45%"
+       title="P2 Security ticket — Wazuh brute force alert assigned to Sue" />
 </p>
 ---
