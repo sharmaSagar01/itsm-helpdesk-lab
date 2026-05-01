@@ -140,7 +140,7 @@ itsm-helpdesk-lab/
 | 1   | Install LAMP stack on Ubuntu                        | ✅ Completed |
 | 2   | Install and configure osTicket                      | ✅ Completed |
 | 3   | Configure departments, teams, and SLA plans         | ✅ Completed |
-| 4   | Integrate osTicket with InfoTech.com AD via LDAP    | ⏳ Pending   |
+| 4   | AD Authentication — LDAP attempted, local auth implemented | ✅ Complete |
 | 5   | Create and document real tickets from lab incidents | ⏳ Pending   |
 | 6   | Write SLA policy and escalation workflows           | ⏳ Pending   |
 | 7   | Write Helpdesk runbook + push to GitHub             | ⏳ Pending   |
@@ -551,11 +551,11 @@ Navigate to: **Admin Panel → Agents → Add New Agent**
 
 Create agents using your existing AD lab users:
 
-| Name      | Email                  | Username  | Department | Role           | Team             |
-| --------- | ---------------------- | --------- | ---------- | -------------- | ---------------- |
-| Paula Doe | paula@infotech.com | paula | IT Support | Senior Agent   | Level II Support |
-| Dave Doe  | dave@infotech.com  | dave  | IT Support | Helpdesk Agent | Level I Support  |
-| Sue       | sue@infotech.com       | sue       | Security   | Senior Agent   | Level II Support |
+| Name      | Email              | Username | Department | Role           | Team             |
+| --------- | ------------------ | -------- | ---------- | -------------- | ---------------- |
+| Paula Doe | paula@infotech.com | paula    | IT Support | Senior Agent   | Level II Support |
+| Dave Doe  | dave@infotech.com  | dave     | IT Support | Helpdesk Agent | Level I Support  |
+| Sue       | sue@infotech.com   | sue      | Security   | Senior Agent   | Level II Support |
 
 **For each agent:**
 
@@ -575,8 +575,8 @@ These are the end users who submit tickets — also mapped to your AD lab:
 
 | Name          | Email                 |
 | ------------- | --------------------- |
-| Ram Doe       | rdoe@infotech.com  |
-| Jessy Merch      | jmerch@infotech.com |
+| Ram Doe       | rdoe@infotech.com     |
+| Jessy Merch   | jmerch@infotech.com   |
 | Alice Johnson | ajohnson@infotech.com |
 
 ---
@@ -631,3 +631,112 @@ Navigate to: **Admin Panel → Settings → Tickets**
 <p align="center">
   <img src="Screenshots/phase3-img3.png" width="45%" />
   </p>
+
+---
+
+# ✅ Phase 4 — Agent Authentication Setup
+
+## 📋 What This Phase Covers
+
+This phase documents the authentication approach for osTicket agents —
+including the LDAP integration that was attempted, the technical issue
+encountered, and the pragmatic decision to use local authentication instead.
+
+> Full technical details: [`config/ad-integration.md`](config/ad-integration.md)
+
+---
+
+## 🔍 LDAP Integration — Attempted
+
+LDAP authentication was attempted to allow agents to log in with their
+`InfoTech.com` AD credentials directly. The following was completed:
+
+```bash
+# PHP LDAP extension installed
+sudo apt install php-ldap -y
+
+# Plugin built from source using composer
+cd /tmp && git clone https://github.com/osTicket/osTicket-plugins.git
+cd osTicket-plugins && composer install
+php -dphar.readonly=0 make.php build auth-ldap
+
+# Plugin deployed as .phar (correct format for osTicket 1.18.x)
+sudo cp auth-ldap.phar /var/www/html/osticket/include/plugins/
+
+# Net_LDAP2 dependency installed via PEAR
+sudo apt install php-pear -y
+sudo pear install Net_LDAP2
+```
+
+### Issue Encountered
+
+After enabling the plugin, osTicket returned:
+
+```
+Failed opening required 'include/Net/LDAP2.php'
+```
+
+**Root cause:** `Net_LDAP2` was installed to `/usr/share/php/Net/` but
+the `auth-ldap.phar` plugin expected it within osTicket's own include path.
+Multiple resolution attempts were made:
+
+| Attempt                                               | Result          |
+| ----------------------------------------------------- | --------------- |
+| Adding PEAR path to `php.ini` `include_path`          | ❌ Still failed |
+| Symlinking `/usr/share/php/Net` into osTicket include | ❌ Still failed |
+| Copying Net directory directly into osTicket include  | ❌ Still failed |
+
+**Conclusion:** Version incompatibility between osTicket 1.18.1,
+the `auth-ldap` plugin build, and `Net_LDAP2` path resolution on
+Ubuntu 26. Known issue in the osTicket community with newer Ubuntu releases.
+
+---
+
+## ✅ Decision — Local Authentication
+
+osTicket's built-in local authentication was used instead. This is
+standard practice in most production osTicket deployments.
+
+Agent accounts were created with usernames **matching their AD identities**
+for consistency across the lab portfolio:
+
+| osTicket Agent | Username    | Mirrors AD Account       | Department |
+| -------------- | ----------- | ------------------------ | ---------- |
+| Admin User     | `itadmin`   | `Administrator`          | —          |
+| Paula Doe      | `paula.doe` | `paula.doe@InfoTech.com` | IT Support |
+| Dave Doe       | `dave.doe`  | `dave.doe@InfoTech.com`  | IT Support |
+| Sue            | `sue`       | `sue@InfoTech.com`       | Security   |
+
+---
+
+## ⚙️ Setting Agent Passwords
+
+Navigate to: **Admin Panel → Agents → click agent name → Account tab**
+
+| Setting                 | Value                                    |
+| ----------------------- | ---------------------------------------- |
+| Password                | Set a secure password per agent          |
+| Require password change | ✅ Enabled — forces reset on first login |
+| Agent status            | Active                                   |
+
+---
+
+## ✅ Outcome
+
+- LDAP integration fully attempted and documented with root cause analysis ✅
+- `auth-ldap.phar` plugin built from source and deployed ✅
+- `Net_LDAP2` installed via PEAR ✅
+- Version compatibility issue identified — documented in `config/ad-integration.md` ✅
+- Local authentication implemented — all agents active and verified ✅
+- Agent usernames match AD identities for portfolio consistency ✅
+
+
+---
+
+## 📸 Screenshots
+
+<p align="center">
+    <img src="Screenshots/phase4-img1.png" width="45%" />
+ 
+</p>
+---

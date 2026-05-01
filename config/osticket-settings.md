@@ -51,8 +51,8 @@
 | Name | Username | Department | Role | Team |
 |------|---------|------------|------|------|
 | Admin User | `itadmin` | — | Administrator | — |
-| Paula Doe | `paula` | IT Support | Senior Agent | Level II Support |
-| Dave Doe | `dave` | IT Support | Helpdesk Agent | Level I Support |
+| Paula Doe | `paula.doe` | IT Support | Senior Agent | Level II Support |
+| Dave Doe | `dave.doe` | IT Support | Helpdesk Agent | Level I Support |
 | Sue | `sue` | Security | Senior Agent | Level II Support |
 
 ---
@@ -61,8 +61,8 @@
 
 | Name | Email |
 |------|-------|
-| Ram Doe | rdoe@infotech.com |
-| Jessy Merch | jmerch@infotech.com |
+| Ram Doe | ram.doe@infotech.com |
+| John Doe | john.doe@infotech.com |
 | Alice Johnson | ajohnson@infotech.com |
 
 ---
@@ -106,20 +106,14 @@
 
 ---
 
-## 🔒 LDAP / AD Integration
-
-> Full AD integration steps: [`ad-integration.md`](ad-integration.md)
+## 🔒 Authentication
 
 | Setting | Value |
 |---------|-------|
-| Authentication Backend | LDAP |
-| LDAP Server | `192.168.1.10` (VM-WINSERV-01) |
-| LDAP Port | `389` |
-| Base DN | `DC=InfoTech,DC=com` |
-| Bind DN | `CN=Administrator,CN=Users,DC=InfoTech,DC=com` |
-| Search Filter | `(sAMAccountName=%s)` |
-| Status | ⏳ Configured in Phase 4 |
-
+| Authentication Backend | Local (osTicket built-in) |
+| LDAP Integration | Attempted — incompatibility between osTicket 1.18.1 and Net_LDAP2 on Ubuntu 26 |
+| Agent usernames | Match AD identities (paula.doe, dave.doe, sue) for consistency |
+| Status | ✅ Local auth active — see `ad-integration.md` for LDAP attempt details |
 ---
 
 ## 📦 Server Details
