@@ -417,7 +417,7 @@ Estimated 25 minutes saved vs manual ADUC process.
 | Server / AD Issue   | Infrastructure dept | Paula Doe       |
 | Account Locked Out  | IT Support dept     | Dave Doe        |
 | New User Onboarding | IT Support dept     | Dave Doe        |
-| Password Reset      | IT Support dept     | Dave Doe        |
+| Password Reset      | IT Support dept     | Dave Doe        |![Status](https://img.shields.io/badge/Status-Complete-green?style=flat-square)
 
 ## Real Troubleshooting Documented
 
@@ -433,14 +433,17 @@ Estimated 25 minutes saved vs manual ADUC process.
 
 <div align="center">
 
-![Complete](https://img.shields.io/badge/Project-Complete-brightgreen?style=flat-square)
+![Status](https://img.shields.io/badge/Status-Complete-green?style=flat-square)
 
-**🎫 Built for learning • ⭐ Star if you find this useful**
+**☁️ Built for learning • ⭐ Star if you find this useful**
 
 _Part of a series:_
-[AD & Windows Server Labs](https://github.com/your-username/ad-windows-server-labs) •
-[AD Automation Toolkit](https://github.com/your-username/ad-automation-toolkit) •
-[Wazuh SIEM Lab](https://github.com/your-username/wazuh-siem-lab) •
-[ITSM Helpdesk Lab](https://github.com/your-username/itsm-helpdesk-lab)
+[AD & Windows Server Labs](https://github.com/sharmaSagar01/ad-windows-server-labs) •
+[AD Automation Toolkit](https://github.com/sharmaSagar01/ad-automation-toolkit) •
+[Wazuh SIEM Lab](https://github.com/sharmaSagar01/wazuh-siem-lab) •
+[ITSM Helpdesk Lab](https://github.com/sharmaSagar01/itsm-helpdesk-lab) •
+[Azure Hybrid Identity Lab](https://github.com/sharmaSagar01/azure-hybrid-identity-lab) •
+[AWS Cloud Infrastructure Lab](https://github.com/sharmaSagar01/aws-cloud-infra-lab)
 
 </div>
+
